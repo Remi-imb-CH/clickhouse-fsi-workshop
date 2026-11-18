@@ -8,7 +8,8 @@ The data is deterministic: everyone gets the same numbers, on any service.
 
 | What | Where |
 |---|---|
-| The workshop, module by module | [en/README.md](en/README.md) |
+| **The 90-minute short track**: the essential concepts in 4 files | [en/short/README.md](en/short/README.md) |
+| The full 5-hour workshop, module by module | [en/README.md](en/README.md) |
 | Volumes, results, and timings to measure | [en/RESULTS.md](en/RESULTS.md) |
 | Dashboard, API and agent, step by step | [en/08_dashboards_agent/README.md](en/08_dashboards_agent/README.md) |
 

@@ -4,6 +4,8 @@ One day of card payment clearing at an issuing bank, end to end, on **your own C
 JSON files in a card scheme's format (CLEARING transaction detail, SETTLEMENT daily totals, AUTH daily authorized amount)
 go to bronze, then silver, then gold, all the way to dashboards, an API and an AI agent.
 
+> Only 90 minutes? Take the [short track](short/README.md): the essential concepts in 4 files.
+
 All data is **simulated in SQL** (no customer files, no download, no external tools) and
 deterministic: everyone gets the same numbers.
 
@@ -239,6 +241,7 @@ Everything that shows up in the slides and in the repo, in one line.
 06_performance/       1.5 billion transactions, optimizations to measure
 07_operations/        replay, TTL, security, observability
 08_dashboards_agent/  step-by-step README: dashboard, API, ClickHouse Agents (no SQL file)
+short/                the 90-minute track: 4 SQL files and its own README
 run_all.sh, reset.sql full run and cleanup
 RESULTS.md            volumes and results (identical for everyone), and the timings to measure on your service
 ```
