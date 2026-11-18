@@ -122,9 +122,64 @@ ORDER BY day;
 -- spending is cut in half.
 
 
+-- STEP 5 · A second gold table: the spend hour by hour, for the curves
+CREATE OR REPLACE TABLE gold.issuer_curve
+(
+    issuer_id  LowCardinality(String),
+    channel    LowCardinality(String),
+    hour       DateTime('UTC'),
+    spend_eur  Decimal(18, 2),
+    n_txns     UInt32
+)
+ENGINE = MergeTree
+ORDER BY (issuer_id, channel, hour);
+
+CREATE OR REPLACE MATERIALIZED VIEW gold.rmv_issuer_curve
+REFRESH EVERY 10 MINUTE
+TO gold.issuer_curve
+AS
+SELECT
+    dictGet('ref.dict_card', 'issuer_id', card_id)  AS issuer_id,
+    channel,
+    toStartOfHour(ts)                               AS hour,
+    sum(amount_eur)                                 AS spend_eur,
+    count()                                         AS n_txns
+FROM silver.transaction FINAL
+GROUP BY issuer_id, channel, hour;
+
+SYSTEM WAIT VIEW gold.rmv_issuer_curve;
+
+
+-- STEP 6 · Document gold: the AI agent of part 5 reads these comments
+--  An agent does not guess the business, it reads the schema. Without comments it would
+--  not know that hour is in UTC or that 488903 is a bank. Only metadata changes: instant.
+ALTER TABLE gold.category_day_spend
+    MODIFY COMMENT 'Card spend per day, issuing bank, merchant category and channel, first week of October 2026. Amounts in EUR. Bank name: dictGet(''ref.dict_issuer'', ''name'', toString(issuer_id)). Category label: dictGet(''ref.dict_mcc'', ''label'', toUInt64(mcc)). Filter on issuer_id first (sorting key).';
+ALTER TABLE gold.category_day_spend
+    COMMENT COLUMN day       'Business day, local time (Europe/Paris)',
+    COMMENT COLUMN issuer_id 'Issuing bank identifier (488903 = Lumière Banque, see ref.issuer)',
+    COMMENT COLUMN mcc       'Merchant category code, ISO 18245 (5411 = grocery stores, 5812 = restaurants…)',
+    COMMENT COLUMN channel   'POS = in store, ECOM = online',
+    COMMENT COLUMN spend_eur 'Total amount of the payments, in EUR',
+    COMMENT COLUMN n_txns    'Number of payments';
+
+ALTER TABLE gold.issuer_curve
+    MODIFY COMMENT 'Card spend per issuing bank, channel and hour. hour = START of the hour, in UTC: convert with toTimeZone(hour, ''Europe/Paris''). Filter on issuer_id first (sorting key).';
+ALTER TABLE gold.issuer_curve
+    COMMENT COLUMN issuer_id 'Issuing bank identifier (488903 = Lumière Banque). Name: dictGet(''ref.dict_issuer'', ''name'', toString(issuer_id))',
+    COMMENT COLUMN channel   'POS = in store, ECOM = online',
+    COMMENT COLUMN hour      'Start of the hour, UTC',
+    COMMENT COLUMN spend_eur 'Total amount of the payments of the hour, in EUR',
+    COMMENT COLUMN n_txns    'Number of payments of the hour';
+
+SELECT name, comment FROM system.tables WHERE database = 'gold' AND comment != '' ORDER BY name;
+
+
 -- CHECKPOINT 3/4
 SELECT
     if((SELECT element_count FROM system.dictionaries WHERE database = 'ref' AND name = 'dict_card') = 1000000, 'OK', 'FAIL') AS dictionaries,
     if((SELECT count() FROM gold.category_day_spend) > 1000, 'OK', 'FAIL')              AS gold,
-    if((SELECT uniqExact(issuer_id) FROM gold.category_day_spend) = 6, 'OK', 'FAIL')    AS issuers
+    if((SELECT uniqExact(issuer_id) FROM gold.category_day_spend) = 6, 'OK', 'FAIL')    AS issuers,
+    if((SELECT count() FROM gold.issuer_curve) > 1000, 'OK', 'FAIL')                    AS curve,
+    if((SELECT count() FROM system.tables WHERE database = 'gold' AND comment != '') >= 2, 'OK', 'FAIL') AS documented
 SETTINGS select_sequential_consistency = 1;

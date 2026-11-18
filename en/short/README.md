@@ -5,13 +5,16 @@ concepts that matter most. Everything is generated in SQL inside ClickHouse: not
 
 | Time | Part | Concept | File | Hands-on |
 |---|---|---|---|---|
-| 0:00 | What is ClickHouse | column storage, the Cloud, use cases | slides | |
-| 0:10 | Setup | run two files as is | [`../01_fundamentals/01_setup_and_reference_data.sql`](../01_fundamentals/01_setup_and_reference_data.sql), then [`../02_bronze/01_simulator.sql`](../02_bronze/01_simulator.sql) | 5 min |
-| 0:15 | **1** Storage | MergeTree, parts, compression, the sparse primary index | [`01_storage_and_primary_key.sql`](01_storage_and_primary_key.sql) | 15 min |
-| 0:35 | **2** Ingestion | raw JSON in bronze, a materialized view, ReplacingMergeTree and FINAL | [`02_bronze_to_silver.sql`](02_bronze_to_silver.sql) | 20 min |
-| 0:55 | **3** Serving | dictionaries, a refreshable materialized view, a gold table | [`03_dictionaries_and_gold.sql`](03_dictionaries_and_gold.sql) | 15 min |
-| 1:10 | **4** Scale | 186 million transactions, primary key, parallel replicas, projection | [`04_scale_and_speed.sql`](04_scale_and_speed.sql) | 15 min |
-| 1:25 | Wrap-up | best practices, where to go next | slides | |
+| 0:00 | What is ClickHouse | column storage, the Cloud, where it is used | slides | |
+| 0:10 | Setup | run two files as is | [`../01_fundamentals/01_setup_and_reference_data.sql`](../01_fundamentals/01_setup_and_reference_data.sql), then [`../02_bronze/01_simulator.sql`](../02_bronze/01_simulator.sql) | 3 min |
+| 0:13 | **1** Storage | MergeTree, parts, compression, the sparse primary index | [`01_storage_and_primary_key.sql`](01_storage_and_primary_key.sql) | 12 min |
+| 0:30 | **2** Ingestion | raw JSON in bronze, a materialized view, ReplacingMergeTree and FINAL | [`02_bronze_to_silver.sql`](02_bronze_to_silver.sql) | 15 min |
+| 0:48 | **3** Serving | dictionaries, refreshable materialized views, a documented gold layer | [`03_dictionaries_and_gold.sql`](03_dictionaries_and_gold.sql) | 10 min |
+| 1:00 | **4** Scale | 186 million transactions, primary key, parallel replicas, projection | [`04_scale_and_speed.sql`](04_scale_and_speed.sql) | 8 min |
+| 1:08 | **5** Agent | create a ClickHouse agent, ask questions, have it build an app | [`05_agent.md`](05_agent.md) | 20 min |
+| 1:28 | Wrap-up | best practices, where to go next | slides | |
+
+Short on time? Part 4 can be skipped or shown by the trainer: part 5 only needs parts 1 to 3.
 
 ## How to run it
 
@@ -28,6 +31,7 @@ Every file is idempotent: run it again if a step was missed.
 - 1.9 million transactions unfolded from 140 JSON files by a materialized view, about 20 bytes each
 - a gold table of a few thousand rows that answers the dashboard in milliseconds
 - 186 million transactions, where one card's statement reads a few thousand rows
+- an AI agent that answers questions in plain English and builds an interactive app on your data
 
 ## Going further
 
