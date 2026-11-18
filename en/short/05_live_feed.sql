@@ -159,6 +159,40 @@ WHERE minute >= toStartOfMinute(now() - INTERVAL 5 MINUTE);
 -- (percentiles are estimates), from far fewer rows. The gap in rows read grows with the volume.
 
 
+-- STEP 5 · Understand states with six payments
+--  Two minutes, three payments each. Cards B and C pay in both minutes.
+--  a) The number of distinct cards per minute: 3 and 3
+SELECT minute, uniq(card) AS distinct_cards
+FROM values('minute String, card String',
+            ('14:01', 'A'), ('14:01', 'B'), ('14:01', 'C'),
+            ('14:02', 'B'), ('14:02', 'C'), ('14:02', 'D'))
+GROUP BY minute
+ORDER BY minute;
+
+--  b) Over the two minutes there are 4 distinct cards (A, B, C, D), not 3 + 3 = 6.
+--     If the summary table kept the NUMBER 3 for each minute, the answer would be lost.
+--     So it keeps a STATE for each minute (what uniq has seen so far), and states merge:
+SELECT
+    sum(distinct_cards)      AS adding_the_numbers,      -- 6: wrong
+    uniqMerge(cards_state)   AS merging_the_states       -- 4: right
+FROM
+(
+    SELECT minute, uniq(card) AS distinct_cards, uniqState(card) AS cards_state
+    FROM values('minute String, card String',
+                ('14:01', 'A'), ('14:01', 'B'), ('14:01', 'C'),
+                ('14:02', 'B'), ('14:02', 'C'), ('14:02', 'D'))
+    GROUP BY minute
+);
+-- What to look for: 6 against 4. gold.live_minute does exactly this, for every minute, bank,
+-- channel and category: the view writes uniqState, the dashboard reads uniqMerge.
+
+--  c) What a state looks like in the real table: not a number, a small binary value
+SELECT minute, issuer_id, n_txns, toTypeName(cards) AS type_of_cards, length(hex(cards)) / 2 AS state_bytes
+FROM gold.live_minute
+ORDER BY minute DESC
+LIMIT 3;
+
+
 -- CHECKPOINT 5/5
 SELECT
     if((SELECT count() FROM silver.transaction_live) > 0, 'OK', 'FAIL')                                      AS live_table,
