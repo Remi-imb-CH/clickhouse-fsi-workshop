@@ -1,8 +1,9 @@
 -- =====================================================================
---  SHORT TRACK · 4/4 · Scale: 186 million transactions, and how to read them fast
+--  SHORT TRACK · 4/5 · Analytics at scale: 186 million transactions
 -- =====================================================================
 --  125,000 cards × 1,488 payments (a full year) = 186,000,000 transactions,
 --  generated and written by ONE statement, straight into silver.
+--  Then we ask analytical questions of the whole table and note how long each one takes.
 --  The full workshop (module 06) goes up to 1.5 billion with the same code.
 -- =====================================================================
 
@@ -59,7 +60,73 @@ WHERE database = 'silver' AND table = 'transaction_xl' AND active
 SETTINGS select_sequential_consistency = 1;
 
 
--- STEP 4 · Lever 1: the primary key. One card's statement over a year
+-- STEP 4 · Six analytical questions, each on all 186 million rows
+--  For each one, note the duration and the rows read at the bottom of the console.
+
+--  a) The year in one row
+SELECT
+    count()                              AS payments,
+    round(sum(amount_eur) / 1e9, 2)      AS billion_eur,
+    round(avg(amount_eur), 2)            AS avg_payment_eur,
+    uniqExact(card_id)                   AS cards,
+    uniqExact(merchant_id)               AS merchants
+FROM silver.transaction_xl;
+
+--  b) Month by month, in store and online
+SELECT
+    toStartOfMonth(ts)                                                      AS month,
+    count()                                                                 AS payments,
+    round(sum(amount_eur) / 1e6, 1)                                         AS million_eur,
+    round(100 * sumIf(amount_eur, channel = 'ECOM') / sum(amount_eur), 1)   AS online_pct,
+    uniqExact(card_id)                                                      AS active_cards
+FROM silver.transaction_xl
+GROUP BY month
+ORDER BY month;
+
+--  c) The shape of a week: 7 days × 24 hours
+SELECT
+    toDayOfWeek(ts, 0, 'Europe/Paris')   AS weekday,      -- 1 = Monday
+    toHour(ts, 'Europe/Paris')           AS hour,
+    count()                              AS payments,
+    round(sum(amount_eur) / 1e6, 2)      AS million_eur
+FROM silver.transaction_xl
+GROUP BY weekday, hour
+ORDER BY million_eur DESC
+LIMIT 10;
+
+--  d) The 10 merchants with the highest turnover, out of 50,000
+SELECT
+    dictGet('ref.dict_merchant', 'name', toUInt64(merchant_id))   AS merchant,
+    count()                                                       AS payments,
+    uniqExact(card_id)                                            AS cards,
+    round(sum(amount_eur) / 1e6, 2)                               AS million_eur
+FROM silver.transaction_xl
+GROUP BY merchant_id
+ORDER BY million_eur DESC
+LIMIT 10;
+
+--  e) How amounts are distributed: median, 95th and 99th percentile
+SELECT
+    channel,
+    arrayMap(x -> round(x, 2), quantiles(0.5, 0.95, 0.99)(toFloat64(amount_eur))) AS p50_p95_p99_eur,
+    max(amount_eur)                                                               AS max_eur
+FROM silver.transaction_xl
+GROUP BY channel;
+
+--  f) Spend by merchant category: 2 dictionary lookups per row
+SELECT
+    dictGet('ref.dict_mcc', 'label', toUInt64(dictGet('ref.dict_merchant', 'mcc', toUInt64(merchant_id)))) AS category,
+    round(sum(amount_eur) / 1e9, 2) AS billion_eur
+FROM silver.transaction_xl
+GROUP BY category
+ORDER BY billion_eur DESC
+LIMIT 5;
+-- What to look for: every query reads the 186 million rows and still answers in about a second
+-- or less on the recommended service. No index helps here: this is columnar storage and
+-- vectorized execution on all the cores.
+
+
+-- STEP 5 · One card's statement: the primary key
 --  The filter follows the start of the ORDER BY (channel, card_id): ClickHouse jumps
 --  straight to the right granules.
 SELECT toTimeZone(ts, 'Europe/Paris') AS local_time, amount_eur,
@@ -68,23 +135,11 @@ FROM silver.transaction_xl
 WHERE channel = 'POS' AND card_id = sim_card_id(648)
 ORDER BY ts DESC
 LIMIT 20;
--- What to look for: a few thousand rows read out of 186 million.
-
-EXPLAIN indexes = 1
-SELECT amount_eur FROM silver.transaction_xl WHERE channel = 'POS' AND card_id = sim_card_id(648);
+-- What to look for: a few thousand rows read out of 186 million, a few milliseconds.
 
 
--- STEP 5 · A full scan: no index can help, every row is needed
---  186 million rows, 2 dictionary lookups per row. Its speed depends on the cores at work.
-SELECT
-    dictGet('ref.dict_mcc', 'label', toUInt64(dictGet('ref.dict_merchant', 'mcc', toUInt64(merchant_id)))) AS category,
-    round(sum(amount_eur) / 1e9, 2) AS billion_eur
-FROM silver.transaction_xl
-GROUP BY category
-ORDER BY billion_eur DESC
-LIMIT 5;
-
---  Lever 2: spread the same scan over all the replicas of the service
+-- STEP 6 · The same full scan, spread over all the replicas
+--  Question f) again, with one setting.
 SELECT
     dictGet('ref.dict_mcc', 'label', toUInt64(dictGet('ref.dict_merchant', 'mcc', toUInt64(merchant_id)))) AS category,
     round(sum(amount_eur) / 1e9, 2) AS billion_eur
@@ -97,7 +152,7 @@ SETTINGS enable_parallel_replicas = 1;
 -- storage is shared, so adding compute is enough.
 
 
--- STEP 6 · Lever 3: the projection. The busiest hours of the year
+-- STEP 7 · The projection: the busiest hours of the year
 --  WITHOUT the projection (we turn it off to compare):
 SELECT toStartOfHour(ts) AS hour_utc, round(sum(amount_eur) / 1e6, 2) AS million_eur, count() AS payments
 FROM silver.transaction_xl
@@ -115,7 +170,7 @@ LIMIT 5;
 -- What to look for: same result, tens of thousands of rows read instead of 186 million.
 
 
--- CHECKPOINT 4/4
+-- CHECKPOINT 4/5
 SELECT
     if((SELECT count() FROM silver.transaction_xl) = 186000000, 'OK', 'FAIL') AS xl_transactions
 SETTINGS select_sequential_consistency = 1;

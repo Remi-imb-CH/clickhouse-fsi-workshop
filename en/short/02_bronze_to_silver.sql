@@ -1,5 +1,5 @@
 -- =====================================================================
---  SHORT TRACK · 2/4 · From raw JSON files to typed transactions
+--  SHORT TRACK · 2/5 · From raw JSON files to typed transactions
 -- =====================================================================
 --  bronze (1 row = 1 JSON file)  ──materialized view──►  silver (1 row = 1 transaction)
 --  A materialized view is an INSERT TRIGGER: every block inserted into bronze
@@ -127,7 +127,7 @@ WHERE card_id = sim_card_id(648) AND day = '2026-10-03';
 -- you correct data by inserting a newer version.
 
 
--- CHECKPOINT 2/4
+-- CHECKPOINT 2/5
 SELECT
     if((SELECT count() FROM bronze.raw_flows) = 141, 'OK', 'FAIL')                 AS files,
     if((SELECT count() FROM silver.transaction FINAL) > 1800000, 'OK', 'FAIL')     AS transactions,

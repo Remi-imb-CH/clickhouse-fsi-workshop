@@ -1,5 +1,5 @@
 -- =====================================================================
---  SHORT TRACK · 1/4 · How ClickHouse stores data: columns, parts, primary key
+--  SHORT TRACK · 1/5 · How ClickHouse stores data: columns, parts, primary key
 -- =====================================================================
 --  Before this file, run these two files AS IS (Cmd + Enter, the whole tab):
 --    · ../01_fundamentals/01_setup_and_reference_data.sql   (databases, 1 million cards)
@@ -65,7 +65,7 @@ SELECT * FROM ref.card WHERE card_id = 4000000000006899;
 -- What to look for: under "PrimaryKey", Granules: 1/123. One granule read out of 123.
 
 
--- CHECKPOINT 1/4
+-- CHECKPOINT 1/5
 SELECT
     if((SELECT count() FROM ref.card) = 1000000, 'OK', 'FAIL')     AS cards,
     if((SELECT count() FROM ref.merchant) = 50000, 'OK', 'FAIL')   AS merchants,

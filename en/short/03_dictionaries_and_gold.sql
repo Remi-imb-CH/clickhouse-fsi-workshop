@@ -1,5 +1,5 @@
 -- =====================================================================
---  SHORT TRACK · 3/4 · Dictionaries and a gold table for the dashboard
+--  SHORT TRACK · 3/5 · Dictionaries and a gold table for the dashboard
 -- =====================================================================
 --  Silver holds the detail. A dashboard should read a small table that is
 --  already aggregated and enriched: gold.
@@ -175,7 +175,7 @@ ALTER TABLE gold.issuer_curve
 SELECT name, comment FROM system.tables WHERE database = 'gold' AND comment != '' ORDER BY name;
 
 
--- CHECKPOINT 3/4
+-- CHECKPOINT 3/5
 SELECT
     if((SELECT element_count FROM system.dictionaries WHERE database = 'ref' AND name = 'dict_card') = 1000000, 'OK', 'FAIL') AS dictionaries,
     if((SELECT count() FROM gold.category_day_spend) > 1000, 'OK', 'FAIL')              AS gold,
