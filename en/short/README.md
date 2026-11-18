@@ -10,7 +10,7 @@ concepts that matter most. Everything is generated in SQL inside ClickHouse: not
 | **1** Storage | MergeTree, parts, compression, the sparse primary index | [`01_storage_and_primary_key.sql`](01_storage_and_primary_key.sql) | 12 min |
 | **2** Ingestion | raw JSON in bronze, a materialized view, ReplacingMergeTree and FINAL | [`02_bronze_to_silver.sql`](02_bronze_to_silver.sql) | 15 min |
 | **3** Serving | dictionaries, refreshable materialized views, a documented gold layer | [`03_dictionaries_and_gold.sql`](03_dictionaries_and_gold.sql) | 10 min |
-| **4** Analytics at scale | six analytical questions of 186 million rows, then primary key, parallel replicas, projection | [`04_analytics_at_scale.sql`](04_analytics_at_scale.sql) | 10 min |
+| **4** Analytics at scale | six analytical questions of 186 million rows, then four ways to go faster, each measured before and after: primary key, parallel replicas, projection, query cache | [`04_analytics_at_scale.sql`](04_analytics_at_scale.sql) | 10 min |
 | **5** Live data | payments arriving every 10 seconds, an AggregatingMergeTree kept up to date on insert | [`05_live_feed.sql`](05_live_feed.sql) | 5 min |
 | **6** Agent | create a ClickHouse agent, ask questions, have it build a live app | [`06_agent.md`](06_agent.md) | 20 min |
 
