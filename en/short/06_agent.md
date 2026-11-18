@@ -13,7 +13,7 @@ The agent reads three small tables, all documented with comments:
 
 | Table | One row per | Use it for |
 |---|---|---|
-| `gold.live_minute` | minute, bank, channel, merchant category | **what is happening now**: new payments arrive every 10 seconds |
+| `gold.live_minute` | minute, bank, channel, merchant category | **what is happening now**: new payments arrive every 10 seconds. An AggregatingMergeTree, read with `sum`, `uniqMerge`, `quantileMerge` |
 | `gold.category_day_spend` | day, bank, merchant category, channel | the week of October 1 to 7: totals, rankings, categories |
 | `gold.issuer_curve` | bank, channel, hour | the week of October 1 to 7: curves and heatmaps |
 
@@ -51,8 +51,10 @@ Data
 - Use ONLY gold.live_minute, gold.category_day_spend, gold.issuer_curve and ref.issuer,
   through the ClickHouse tool. Read the comments of the tables and columns first.
 - gold.live_minute is LIVE: new payments arrive every 10 seconds. Use it for anything about
-  "now", "live", "the last N minutes". Always aggregate it: sum(spend_eur), sum(n_txns),
-  GROUP BY, with a filter such as minute >= now() - INTERVAL 15 MINUTE.
+  "now", "live", "the last N minutes". It stores aggregation states: always GROUP BY and read
+  it with sum(spend_eur), sum(n_txns), uniqMerge(cards) for distinct cards and
+  quantileMerge(0.95)(p95_eur) for the 95th percentile of the amount, with a filter such as
+  minute >= now() - INTERVAL 15 MINUTE.
 - gold.category_day_spend and gold.issuer_curve cover the week of October 1 to 7, 2026.
 - Filter on issuer_id first, and always add a LIMIT.
 - hour and minute are in UTC and mark the START of the period: convert with
@@ -122,6 +124,7 @@ WHERE issuer_id = '488903';
 More questions to try:
 
 - "Which merchant categories took the most money in the last 10 minutes?"
+- "How many distinct cards paid in the last 5 minutes, and what is the 95th percentile of the amount?"
 - "Minute by minute, how many payments did Rheingold Bank process in the last quarter of an hour?"
 - "At what time of day does online spending overtake in-store spending?" (week data: from **8pm** Paris time. The trap: hours are stored in UTC)
 - "Rank the six banks by total spend for the week, with their online share." (Lumière Banque 47.28 M EUR; Nordlys Bank the most online at 26.5%, Rheingold Bank the least at 21.9%)
@@ -146,8 +149,8 @@ Build an interactive app called "Live payments cockpit".
 2. Build one React app with:
    - the time of the data at the top ("as of hh:mm:ss, Paris time");
    - a bank selector (the six banks, plus "All banks");
-   - four key figures for the last 5 minutes: payments, spend in EUR, average payment,
-     online share;
+   - five key figures for the last 5 minutes: payments, spend in EUR, distinct cards,
+     95th percentile of the amount, online share;
    - a line chart of the spend minute by minute over the last 15 minutes, in store and online;
    - a bar chart of the top 8 merchant categories over the last 15 minutes;
    - a small table: one row per bank, with payments and spend over the last 5 minutes.
@@ -219,6 +222,7 @@ Ask for one change at a time, in the same conversation:
 | The agent answers in text, no app opens | check that **Artifacts** is in the agent's tools, then ask: "build it as an interactive artifact" |
 | The figures look invented or rounded oddly | ask: "show me the SQL you ran and the rows it returned", then compare with the check queries |
 | The hours are shifted by one or two hours | remind it: "hour and minute are in UTC, convert with toTimeZone(x, 'Europe/Paris')" |
+| An error mentions `AggregateFunction` or an unreadable value | remind it: "read cards with uniqMerge(cards) and p95_eur with quantileMerge(0.95)(p95_eur), with a GROUP BY" |
 | The live figures are zero or do not move | check that the feed runs: step 4 of `05_live_feed.sql`. To restart it: `SYSTEM START VIEW simulator.live_feed;` |
 | It tries to read silver, or scans too much | remind it: "use only the gold tables" |
 | The app is empty or breaks | ask: "the app shows nothing, fix it and keep the same data" |

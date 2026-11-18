@@ -11,7 +11,7 @@ concepts that matter most. Everything is generated in SQL inside ClickHouse: not
 | **2** Ingestion | raw JSON in bronze, a materialized view, ReplacingMergeTree and FINAL | [`02_bronze_to_silver.sql`](02_bronze_to_silver.sql) | 15 min |
 | **3** Serving | dictionaries, refreshable materialized views, a documented gold layer | [`03_dictionaries_and_gold.sql`](03_dictionaries_and_gold.sql) | 10 min |
 | **4** Analytics at scale | six analytical questions of 186 million rows, then primary key, parallel replicas, projection | [`04_analytics_at_scale.sql`](04_analytics_at_scale.sql) | 10 min |
-| **5** Live data | payments arriving every 10 seconds, a summary kept up to date on insert | [`05_live_feed.sql`](05_live_feed.sql) | 5 min |
+| **5** Live data | payments arriving every 10 seconds, an AggregatingMergeTree kept up to date on insert | [`05_live_feed.sql`](05_live_feed.sql) | 5 min |
 | **6** Agent | create a ClickHouse agent, ask questions, have it build a live app | [`06_agent.md`](06_agent.md) | 20 min |
 
 About 90 minutes with the slides. Short on time? Part 4 can be shown by the trainer: part 6 needs parts 1 to 3 and part 5.
