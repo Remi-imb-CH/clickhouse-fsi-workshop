@@ -1,0 +1,10 @@
+logs/
+.venv/
+venv/
+__pycache__/
+*.pyc
+.env
+.env.*
+.DS_Store
+# never commit real files from a card scheme, a processor or a bank
+*.zip
