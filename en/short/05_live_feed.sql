@@ -159,7 +159,21 @@ WHERE minute >= toStartOfMinute(now() - INTERVAL 5 MINUTE);
 -- (percentiles are estimates), from far fewer rows. The gap in rows read grows with the volume.
 
 
--- STEP 5 · Understand states with six payments
+-- STEP 5 · Understand states: first an average, then distinct cards
+--  Two inserts for the same minute: 10, 20 and 30 EUR, then 100 EUR.
+--  The average of the four payments is 40 EUR. If the summary table kept the AVERAGE of each
+--  insert (20 and 100), nothing could rebuild it: (20 + 100) / 2 = 60. So it keeps what is
+--  needed to finish the calculation, here a sum and a count. That is a STATE, and states merge:
+SELECT avg(avg_per_insert) AS averaging_the_averages,   -- 60: wrong
+       avgMerge(avg_state) AS merging_the_states        -- 40: right
+FROM
+(
+    SELECT ins, avg(amount) AS avg_per_insert, avgState(amount) AS avg_state
+    FROM values('ins UInt8, amount Float64', (1, 10), (1, 20), (1, 30), (2, 100))
+    GROUP BY ins
+);
+
+--  The same idea with distinct cards, as in gold.live_minute.
 --  Two minutes, three payments each. Cards B and C pay in both minutes.
 --  a) The number of distinct cards per minute: 3 and 3
 SELECT minute, uniq(card) AS distinct_cards
